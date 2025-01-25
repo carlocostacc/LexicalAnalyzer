@@ -1,5 +1,6 @@
 from __future__ import print_function
 import sys
+import os
 
 # following two must remain in the same order
 
@@ -108,18 +109,18 @@ symbols = { '{': tk_Lbrace, '}': tk_Rbrace, '(': tk_Lparen, ')': tk_Rparen, '+':
 the_ch = " "    # dummy first char - but it must be a space
 the_col = 0
 the_line = 1
-
+input_file = None  # set once we open a file
 
 #letter list containing upper and lower case letters of the alphabet
 letter = [chr(i) for i in range(97, 123)] + [chr(i) for i in range(65, 91)]
 
-# File paths for output
-ERROR_FILE = "outlexerrors.txt"
-TOKEN_FILE = "outlextokens.txt"
+# # File paths for output
+# ERROR_FILE = "outlexerrors.txt"
+# TOKEN_FILE = "outlextokens.txt"
 
-# Initialize files (clear contents before writing)
-open(ERROR_FILE, "w").close()
-open(TOKEN_FILE, "w").close()
+# # Initialize files (clear contents before writing)
+# open(ERROR_FILE, "w").close()
+# open(TOKEN_FILE, "w").close()
 
 def write_to_file(filename, content):
     """Append content to a specified file."""
@@ -131,13 +132,13 @@ def error(line, col, msg):
     print(line, col, msg)
 
 
-try:
-    # Always attempt to open "input.txt" in read mode
-    input_file = open("input.txt", "r", 4096)
-except IOError as e:
-    # If the file cannot be opened, report an error and exit
-    error(0, 0, f"Can't open input.txt: {e}")
-    sys.exit(1)
+# try:
+#     # Always attempt to open "input.txt" in read mode
+#     input_file = open("input.txt", "r", 4096)
+# except IOError as e:
+#     # If the file cannot be opened, report an error and exit
+#     error(0, 0, f"Can't open input.txt: {e}")
+#     sys.exit(1)
 
 
 
@@ -453,38 +454,83 @@ def gettok():
 #     except IOError as e:
 #         error(0, 0, "Can't open %s" % sys.argv[1])
 
-while True:
-    t = gettok()
-    tok  = t[0]  # token code (e.g. tk_Int, tk_Id, tk_Float, etc.)
-    line = t[1]  # line number
-    col  = t[2]  # column number
-    print("values of t")
-    print(t)
+def process_file(input_path, out_errors_path, out_tokens_path):
+    """Processes a single file, writing errors/tokens to separate files."""
+    global input_file, the_ch, the_line, the_col
 
-    # If the token tuple has 4 parts, the 4th is the lexeme or numeric value
-    if len(t) > 3:
-        token_value = str(t[3])  # e.g. "123", "myVar", "3.14"
-    else:
-        token_value = all_syms[tok]  # fallback: use token name as value
-        print("token value :", token_value)
-        print(t[0],t[2])
+    # Reset lexical counters
+    the_line = 1
+    the_col = 0
+    the_ch = " "
 
-    # Build the string: [Op_equal, ==, 1]
-    token_string = f"[{all_syms[tok]}, {token_value}, {line}]"
+    try:
+        input_file = open(input_path, "r", 4096)
+    except IOError as e:
+        print(f"Can't open {input_path}: {e}")
+        return
 
-    if tok == tk_Err:
-        # Write errors to error file
-        write_to_file(ERROR_FILE, token_string)
-        # Optionally print them
-        print(token_string)
-        
-    else:
-        # Write valid tokens to token file
-        write_to_file(TOKEN_FILE, token_string)
-        # Optionally print them
-        print(token_string)
+    # Clear/overwrite any existing output
+    open(out_errors_path, "w").close()
+    open(out_tokens_path, "w").close()
 
-    # Decide when to break from the loop (EOF, etc.)
-    if len(the_ch) == 0:
-        # Possibly we've reached EOF; break if that's your design
-        break
+    # Lexing loop
+    while True:
+        t = gettok()  # (token_code, line, col, maybeValue)
+        tok = t[0]
+        line = t[1]
+        col = t[2]
+
+        # If we have a 4th element, it's the token's lexeme/value
+        if len(t) > 3:
+            token_value = str(t[3])
+        else:
+            token_value = all_syms[tok]  # fallback name
+
+        token_string = f"[{all_syms[tok]}, {token_value}, {line}]"
+
+        if tok == tk_Err:
+            # This is an error token
+            write_to_file(out_errors_path, token_string)
+            print(token_string)
+        else:
+            # Valid token
+            write_to_file(out_tokens_path, token_string)
+            print(token_string)
+
+        # If the_ch is empty => EOF => stop
+        if len(the_ch) == 0:
+            break
+
+    input_file.close()
+
+def main():
+    # Directories
+    input_dir = "input"
+    output_dir = "output"
+
+    # Ensure output directory exists
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Iterate over all files in input/
+    for filename in os.listdir(input_dir):
+        input_path = os.path.join(input_dir, filename)
+        if os.path.isdir(input_path):
+            continue  # skip subdirectories
+        if not filename.endswith(".txt"):
+            continue  # skip non-txt files if desired
+
+        # Prepare output filenames
+        # e.g. file1.txt => file1_outlexerrors.txt, file1_outlextokens.txt
+        base_name = filename.rsplit(".txt", 1)[0]
+        out_errors = os.path.join(output_dir, f"{base_name}_outlexerrors.txt")
+        out_tokens = os.path.join(output_dir, f"{base_name}_outlextokens.txt")
+
+        print(f"\nProcessing file: {filename}")
+        print(f"Errors -> {out_errors}")
+        print(f"Tokens -> {out_tokens}")
+
+        process_file(input_path, out_errors, out_tokens)
+
+
+if __name__ == "__main__":
+    main()
