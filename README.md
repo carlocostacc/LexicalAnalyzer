@@ -1,32 +1,51 @@
-# LexicalAnalyzer
-begging of a compiler
+README
+1. Project Overview
 
+This project is a lexical analyzer that processes multiple input files located in an input/ directory and generates corresponding token and error reports in an output/ directory. Each input file is scanned for valid tokens (integers, floats, identifiers, keywords, etc.), as well as invalid tokens (leading-zero integers, trailing-zero floats, invalid identifiers, and so on).
+2. Requirements
 
-Project: Simple Lexical Analyzer
-
-1. Description
-   This project is a basic lexer that scans an input file for tokens
-   such as identifiers, integers, floats, operators, and comments. 
-   Invalid or unrecognized sequences are reported as errors.
-
-2. Required Input File
-   You must create a file named `input.txt` in the same directory 
-   as the lexer (the main.py script). Place any code or sample input 
-   you want the lexer to process in `input.txt`.
+    Python 3 installed (the script uses Python 3 features).
+    A folder structure that includes:
+        A main.py script (the lexer).
+        An input/ directory containing one or more .txt files to be scanned.
+        An output/ directory, which will hold the generated output files.
 
 3. How to Run
-   - Ensure you have Python 3 installed.
-   - Open a terminal or command prompt in this project's directory.
-   - Run the lexer with: `python main.py`
-   - The lexer will read `input.txt` and produce two output files:
-     - `outlextokens.txt` for valid tokens
-     - `outlexerrors.txt` for errors
 
-4. Notes
-   - If `input.txt` is missing or cannot be opened, the program will 
-     print an error message and exit.
-   - The lexer stops reading when it reaches the end of `input.txt`.
+    Place all input files (e.g., file1.txt, file2.txt, etc.) into the input/ directory.
+    Open a terminal or command prompt in the same directory as main.py.
+    Run the lexer:
 
-5. Contact
-   If you have questions or need further assistance, please reach out 
-   to the project maintainer.
+python main.py
+
+or, if on Windows with multiple Python versions installed:
+
+    python3 main.py
+
+    The lexer will:
+        Enumerate all .txt files in input/.
+        For each file named X.txt, produce two files in output/:
+            X_outlexerrors.txt (containing detected errors)
+            X_outlextokens.txt (listing recognized tokens)
+    Check the output/ directory to see the results.
+        Each token line is logged as [TokenType, LexemeOrValue, LineNumber].
+        Each error line is similarly logged as [error, <message>, LineNumber].
+
+4. Lexical Rules & Examples
+
+    Identifiers: Must start with a letter (a-zA-Z), followed by letters, digits, or underscores (_). Leading digits or _ are disallowed.
+    Integers: Disallow leading zeros (e.g., 0123 is invalid). A single 0 is permitted.
+    Floats: Recognize optional decimal (.) and exponent parts (e/E plus optional +/-). Trailing zeros in the fraction (e.g., 3.140) are invalid per design.
+    Keywords: int, float, while, if, then, else, etc. Any identifier matching these keywords is promoted to a keyword token.
+    Comments:
+        Single-line: // ... (ends at newline).
+        Block: /* ... */.
+    Operators: <, >, <=, >=, ==, <>, :=, etc.
+    Punctuation: (, ), {, }, [, ], ., ,, ;, etc.
+    Errors: Any invalid token, such as leading zeros on integers, underscores leading an identifier, or malformed floats, is logged in the error file.
+
+5. Extending or Modifying
+
+    To add new tokens (operators, punctuation), extend the symbols dictionary or the relevant sections in gettok().
+    To change lexical rules (e.g., allow _ at the start of identifiers), modify the logic in ident_or_int() or other specialized functions.
+    To alter error-handling or token-logging, adjust the lines inside gettok() and the process_file() function.
